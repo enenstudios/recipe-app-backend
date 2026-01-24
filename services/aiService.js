@@ -16,6 +16,16 @@ const GROCERY_AISLES = [
   'Other'
 ];
 
+/** Parse JSON from model output; strip markdown code blocks if present. */
+function parseJSON(str) {
+  if (!str || typeof str !== 'string') throw new SyntaxError('Empty or invalid JSON string');
+  let s = str.trim();
+  const md = /^```(?:json)?\s*([\s\S]*?)```\s*$/;
+  const m = s.match(md);
+  if (m) s = m[1].trim();
+  return JSON.parse(s);
+}
+
 /**
  * Determines if the scraped content contains a recipe
  */
@@ -193,11 +203,9 @@ Return only valid JSON, no additional text.`;
       max_tokens: 500
     });
     
-    const jsonString = response.choices[0].message.content;
-    const result = JSON.parse(jsonString);
-    
-    // Return introduction text or null
-    return result.introduction && result.introduction.trim() ? result.introduction.trim() : null;
+    const result = parseJSON(response.choices[0].message.content);
+    const intro = result?.introduction;
+    return intro && typeof intro === 'string' && intro.trim() ? intro.trim() : null;
   } catch (error) {
     console.error('Error extracting introduction:', error);
     return null;
@@ -239,7 +247,7 @@ Full text: ${content.text.substring(0, 5000)}
 Return only valid JSON, no additional text.`;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     messages: [
       {
         role: 'system',
@@ -255,15 +263,15 @@ Return only valid JSON, no additional text.`;
     max_tokens: 2000
   });
   
-  const jsonString = response.choices[0].message.content;
-  const result = JSON.parse(jsonString);
-  
-  // Validate and normalize aisle assignments
-  const ingredients = result.ingredients.map(ing => ({
-    ...ing,
-    aisle: normalizeAisle(ing.aisle)
-  }));
-  
+  const result = parseJSON(response.choices[0].message.content);
+  const raw = Array.isArray(result.ingredients) ? result.ingredients : [];
+  const ingredients = raw
+    .filter(ing => ing && typeof ing === 'object' && (ing.name || ing.ingredient))
+    .map(ing => ({
+      name: ing.name || ing.ingredient || 'Unknown',
+      quantity: ing.quantity ?? null,
+      aisle: normalizeAisle(ing.aisle)
+    }));
   return ingredients;
 }
 
@@ -384,7 +392,7 @@ Full text: ${content.text.substring(0, 5000)}
 Return only valid JSON, no additional text.`;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     messages: [
       {
         role: 'system',
@@ -400,20 +408,25 @@ Return only valid JSON, no additional text.`;
     max_tokens: 4000
   });
   
-  const jsonString = response.choices[0].message.content;
-  const result = JSON.parse(jsonString);
+  const result = parseJSON(response.choices[0].message.content);
+  const rawSteps = Array.isArray(result.steps) ? result.steps : [];
   
-  // Post-process steps: validate numbering, normalize ingredient names
-  const steps = result.steps.map((step, index) => {
-    // Ensure sequential numbering
+  const steps = rawSteps
+    .filter(s => s && typeof s === 'object' && (s.instruction != null || s.step))
+    .map((step, index) => {
+    const instruction = step.instruction ?? step.step ?? `Step ${index + 1}`;
     const normalizedStep = {
       ...step,
-      number: index + 1
+      number: index + 1,
+      instruction: typeof instruction === 'string' ? instruction : String(instruction),
+      ingredients: Array.isArray(step.ingredients) ? step.ingredients : [],
+      tips: Array.isArray(step.tips) ? step.tips : [],
+      alternatives: Array.isArray(step.alternatives) ? step.alternatives : []
     };
     
-    // Normalize ingredient names to match ingredient list (case-insensitive, handle plurals)
-    if (normalizedStep.ingredients && ingredients.length > 0) {
+    if (normalizedStep.ingredients.length > 0 && ingredients.length > 0) {
       normalizedStep.ingredients = normalizedStep.ingredients
+        .filter(n => typeof n === 'string')
         .map(ingName => {
           const lowerName = ingName.toLowerCase().trim();
           // Find matching ingredient (case-insensitive, handle plurals)
@@ -439,9 +452,9 @@ Return only valid JSON, no additional text.`;
  * Normalizes aisle name to match predefined categories
  */
 function normalizeAisle(aisleName) {
-  if (!aisleName) return 'Other';
-  
-  const normalized = aisleName.trim();
+  if (aisleName == null || aisleName === '') return 'Other';
+  const normalized = String(aisleName).trim();
+  if (!normalized) return 'Other';
   const lower = normalized.toLowerCase();
   
   // Direct matches
@@ -735,13 +748,12 @@ Return only valid JSON, no additional text.`;
       max_tokens: 4000
     });
     
-    const jsonString = response.choices[0].message.content;
-    const result = JSON.parse(jsonString);
-    
-    return result.steps || steps;
+    const result = parseJSON(response.choices[0].message.content);
+    const adjusted = Array.isArray(result?.steps) ? result.steps : steps;
+    return adjusted;
   } catch (error) {
     console.error('Error adjusting step detail:', error);
-    return steps; // Return original steps on error
+    return steps;
   }
 }
 
@@ -798,13 +810,13 @@ Content: ${primaryContent.substring(0, 3000)}`;
         max_tokens: 2000
       });
       
-      const result = JSON.parse(response.choices[0].message.content);
-      
+      const result = parseJSON(response.choices[0].message.content);
+      const steps = Array.isArray(result?.steps) ? result.steps : [];
       return {
         title: content.title || 'Recipe',
         ingredients: ingredients,
         introduction: introduction,
-        steps: result.steps || []
+        steps
       };
     }
   } catch (error) {
