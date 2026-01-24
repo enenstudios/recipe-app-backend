@@ -58,11 +58,15 @@ export async function scrapeURL(url) {
   // Try to find recipe-specific content
   const recipeContent = $('[class*="recipe"], [id*="recipe"], [itemtype*="Recipe"]').text().replace(/\s+/g, ' ').trim();
   
+  // Try to find instruction-specific content - prioritize this for better extraction
+  const instructionContent = $('[class*="instruction"], [class*="step"], [itemprop="recipeInstructions"], [class*="directions"], [class*="method"], [class*="howto"], ol[class*="recipe"], ol[class*="instruction"], ol[class*="step"]').text().replace(/\s+/g, ' ').trim();
+  
   return {
     text: text.substring(0, 10000), // Limit to 10k characters for AI processing
     title: title.substring(0, 200),
     description: description.substring(0, 500),
     recipeContent: recipeContent.substring(0, 5000),
+    instructionContent: instructionContent.substring(0, 5000),
     url: url
   };
 }
