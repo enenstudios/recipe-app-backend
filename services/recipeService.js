@@ -32,6 +32,7 @@ export async function extractRecipe(url, userProfile = null) {
     if (error.message === 'TIMEOUT' || error.message === 'FETCH_ERROR') {
       const customError = new Error('Something went wrong — try again.');
       customError.statusCode = 500;
+      customError.step = 'scrape';
       customError.cause = error;
       throw customError;
     }
@@ -55,6 +56,7 @@ export async function extractRecipe(url, userProfile = null) {
       console.error('[extract] isRecipe retry failed:', retryError.message);
       const customError = new Error('Something went wrong — try again.');
       customError.statusCode = 500;
+      customError.step = 'isRecipe';
       customError.cause = retryError;
       throw customError;
     }
@@ -95,6 +97,7 @@ export async function extractRecipe(url, userProfile = null) {
       // #endregion
       const customError = new Error('Something went wrong — try again.');
       customError.statusCode = 500;
+      customError.step = 'extract';
       customError.cause = retryError;
       throw customError;
     }

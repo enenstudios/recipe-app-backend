@@ -22,18 +22,15 @@ app.use('/api/recipe', recipeRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('[extract] middleware:', err.message, 'statusCode=', err.statusCode, 'cause=', err.cause?.message);
+  console.error('[extract] middleware:', err.message, 'statusCode=', err.statusCode, 'step=', err.step, 'cause=', err.cause?.message);
   if (err.stack) console.error('[extract] stack:', err.stack.slice(0, 600));
   
-  if (err.statusCode) {
-    return res.status(err.statusCode).json({
-      error: err.message
-    });
-  }
-  
-  res.status(500).json({
-    error: 'Something went wrong — try again.'
-  });
+  const status = err.statusCode || 500;
+  const body = err.statusCode
+    ? { error: err.message }
+    : { error: 'Something went wrong — try again.' };
+  if (status === 500 && err.step) res.setHeader('X-Error-Step', err.step);
+  return res.status(status).json(body);
 });
 
 app.listen(PORT, () => {
