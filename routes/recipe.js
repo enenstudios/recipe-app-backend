@@ -36,6 +36,7 @@ router.post('/extract', async (req, res, next) => {
     
     res.json(result);
   } catch (error) {
+    console.error('[extract] route catch:', error.message, 'statusCode=', error.statusCode, 'cause=', error.cause?.message);
     next(error);
   }
 });

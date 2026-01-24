@@ -22,7 +22,8 @@ app.use('/api/recipe', recipeRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  console.error('[extract] middleware:', err.message, 'statusCode=', err.statusCode, 'cause=', err.cause?.message);
+  if (err.stack) console.error('[extract] stack:', err.stack.slice(0, 600));
   
   if (err.statusCode) {
     return res.status(err.statusCode).json({
