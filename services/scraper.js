@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import * as cheerio from 'cheerio';
 
 const SCRAPE_TIMEOUT_MS = 15000;
@@ -16,7 +15,6 @@ export async function scrapeURL(url) {
     response = await fetch(url, {
       signal: controller.signal,
       redirect: 'follow',
-      follow: 5,
       headers: {
         // Use a generic UA; Chrome-style UAs are often blocked by recipe sites (e.g. Fitwaffle)
         'User-Agent': 'Mozilla/5.0 (compatible; RecipeBot/1.0; +https://github.com/recipe-app)',
