@@ -59,40 +59,19 @@ export async function isRecipe(content) {
  * Extracts recipe information from web content with structured steps
  */
 export async function extractRecipeFromContent(content) {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/4a6fd756-1d14-48cb-b935-5fa63a916716',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiService.js:51',message:'extractRecipeFromContent called',data:{hasContent:!!content},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
   try {
     // Prioritize instruction-specific content if available
     const primaryContent = content.instructionContent || content.recipeContent || content.text.substring(0, 3000);
     
     // First, extract ingredients
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/4a6fd756-1d14-48cb-b935-5fa63a916716',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiService.js:57',message:'calling extractIngredients',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     const ingredients = await extractIngredients(content);
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/4a6fd756-1d14-48cb-b935-5fa63a916716',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiService.js:60',message:'extractIngredients completed',data:{ingredientsCount:ingredients?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
+
     // Extract introduction separately
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/4a6fd756-1d14-48cb-b935-5fa63a916716',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiService.js:63',message:'calling extractIntroduction',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     const introduction = await extractIntroduction(content);
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/4a6fd756-1d14-48cb-b935-5fa63a916716',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiService.js:66',message:'extractIntroduction completed',data:{hasIntroduction:!!introduction,introLength:introduction?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
+
     // Then extract structured steps with tips and alternatives
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/4a6fd756-1d14-48cb-b935-5fa63a916716',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiService.js:69',message:'calling extractStructuredSteps',data:{ingredientsCount:ingredients?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     const steps = await extractStructuredSteps(content, ingredients);
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/4a6fd756-1d14-48cb-b935-5fa63a916716',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiService.js:72',message:'extractStructuredSteps completed',data:{stepsCount:steps?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
+
     const title = await extractTitle(content);
     const result = {
       title: title,
@@ -100,14 +79,8 @@ export async function extractRecipeFromContent(content) {
       introduction: introduction,
       steps: steps
     };
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/4a6fd756-1d14-48cb-b935-5fa63a916716',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiService.js:80',message:'extractRecipeFromContent returning',data:{hasTitle:!!result.title,hasIngredients:!!result.ingredients,hasSteps:!!result.steps,hasIntroduction:!!result.introduction,resultKeys:Object.keys(result)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     return result;
   } catch (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/4a6fd756-1d14-48cb-b935-5fa63a916716',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiService.js:83',message:'extractRecipeFromContent error',data:{error:error.message,errorType:error.constructor.name,isSyntaxError:error instanceof SyntaxError,stack:error.stack?.substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     console.error('Error extracting recipe:', error);
     
     if (error instanceof SyntaxError) {
